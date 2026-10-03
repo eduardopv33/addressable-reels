@@ -1,0 +1,108 @@
+name: Renderizar Reel
+
+# Lo dispara n8n con un repository_dispatch. El payload trae el contenido del
+# Reel y la URL a la que hay que devolver el resultado.
+on:
+  repository_dispatch:
+    types: [renderizar-reel]
+  workflow_dispatch:
+    inputs:
+      contenido:
+        description: 'JSON del contenido (deja vacio para usar contenido.json)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write          # necesario para publicar el Release con el MP4
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias
+        run: npm ci || npm install
+
+      - name: Preparar el contenido
+        id: prep
+        env:
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          MANUAL: ${{ inputs.contenido }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const payload = process.env.PAYLOAD && process.env.PAYLOAD !== "null"
+              ? JSON.parse(process.env.PAYLOAD) : {};
+            const manual = (process.env.MANUAL || "").trim();
+            let c;
+            if (manual) c = JSON.parse(manual);
+            else if (payload.beats) c = payload;
+            else c = JSON.parse(fs.readFileSync("contenido.json", "utf8"));
+            if (!Array.isArray(c.beats) || c.beats.length < 3)
+              throw new Error("contenido sin beats suficientes");
+            fs.writeFileSync("contenido.json", JSON.stringify(c, null, 2));
+            const ref = (c.referencia || "reel").toString().replace(/[^a-zA-Z0-9_-]/g, "-");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,
+              "referencia=" + ref + "\n" +
+              "fila=" + (c.row_number || "") + "\n" +
+              "callback=" + (c.callback_url || "") + "\n");
+          '
+
+      - name: Renderizar
+        id: render
+        run: node render.js contenido.json out/reel.mp4
+
+      - name: Publicar el MP4 como Release
+        id: pub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="reel-${{ steps.prep.outputs.referencia }}-${{ github.run_number }}"
+          gh release create "$TAG" out/reel.mp4 \
+            --title "Reel ${{ steps.prep.outputs.referencia }}" \
+            --notes "Render automatico. Fila ${{ steps.prep.outputs.fila }}. Duracion ${{ steps.render.outputs.duracion }} s." \
+            --repo "${{ github.repository }}"
+          URL="https://github.com/${{ github.repository }}/releases/download/$TAG/reel.mp4"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "MP4 publico en: $URL"
+
+      - name: Comprobar que la URL es descargable
+        run: |
+          code=$(curl -sSL -o /dev/null -w '%{http_code}' "${{ steps.pub.outputs.url }}")
+          echo "HTTP $code"
+          test "$code" = "200" || { echo "La URL no responde 200; Instagram no podria descargarla"; exit 1; }
+
+      - name: Avisar a n8n
+        if: steps.prep.outputs.callback != ''
+        run: |
+          curl -sS -X POST "${{ steps.prep.outputs.callback }}" \
+            -H 'Content-Type: application/json' \
+            -d '{
+                  "ok": true,
+                  "row_number": "${{ steps.prep.outputs.fila }}",
+                  "referencia": "${{ steps.prep.outputs.referencia }}",
+                  "video_url": "${{ steps.pub.outputs.url }}",
+                  "duracion": "${{ steps.render.outputs.duracion }}",
+                  "tamano_kb": "${{ steps.render.outputs.tamano_kb }}",
+                  "run": "${{ github.run_id }}"
+                }'
+
+      - name: Avisar a n8n si fallo
+        if: failure() && steps.prep.outputs.callback != ''
+        run: |
+          curl -sS -X POST "${{ steps.prep.outputs.callback }}" \
+            -H 'Content-Type: application/json' \
+            -d '{
+                  "ok": false,
+                  "row_number": "${{ steps.prep.outputs.fila }}",
+                  "motivo": "El render fallo en GitHub Actions",
+                  "run": "${{ github.run_id }}"
+                }'

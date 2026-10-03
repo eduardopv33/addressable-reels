@@ -1,0 +1,13 @@
+{
+  "name": "addressable-reels",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Reels de Addressable: el sistema de movimiento de la marca renderizado a MP4 con Chrome y ffmpeg.",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "puppeteer-core": "^23.11.1"
+  }
+}

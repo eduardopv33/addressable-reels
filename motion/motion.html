@@ -1,0 +1,192 @@
+<title>Addressable · Reel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=IBM+Plex+Sans:wght@400;500&display=swap');
+
+:root{
+  --navy:#102845; --paper:#EDF1F6; --paper-cover:#DCE6F2;
+  --ink:#102845; --ink-soft:#52698A; --ink-invert:#FFF; --ink-invert-soft:#A9BCD4;
+  --rule-light:#C7D3E0; --rule-cover:rgba(16,40,69,.22);
+  --pad:96px; --text-x:152px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;align-items:center;justify-content:center;
+     min-height:100vh;font-family:'IBM Plex Sans',sans-serif;overflow:hidden}
+
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--navy);
+       transform-origin:top left}
+#inner{position:absolute;inset:0;transform-origin:center center}
+
+/* la espina es el dispositivo de marca y hace de barra de progreso */
+.spine{position:absolute;left:96px;top:var(--pad);bottom:var(--pad);width:3px}
+.spine__on{position:absolute;left:0;width:3px}
+
+/* zona segura de Reels: Instagram tapa ~120px arriba y ~320px abajo */
+.stage-txt{position:absolute;left:var(--text-x);right:var(--pad);top:260px;bottom:560px;
+           display:flex;flex-direction:column;justify-content:center}
+.kicker{font-size:32px;font-weight:500;letter-spacing:.17em;text-transform:uppercase;
+        margin-bottom:36px;height:38px}
+.anchor{position:relative;font-family:Montserrat,sans-serif;font-weight:800;letter-spacing:-.026em}
+.ln{display:block;overflow:hidden}
+.ln i{display:block;font-style:normal;will-change:transform}
+.marca{position:absolute;left:-56px;width:0;height:3px;top:.45em}
+
+.wordmark{position:absolute;left:var(--text-x);top:1500px;font-family:Montserrat,sans-serif;
+          font-weight:800;font-size:32px;letter-spacing:.18em;opacity:0}
+.mark{position:absolute;right:var(--pad);top:220px;width:78px;height:78px;opacity:0}
+</style>
+
+<div id="stage">
+  <div id="inner">
+    <div class="spine"><div class="spine__on" id="spineOn"></div></div>
+    <div class="stage-txt">
+      <div class="kicker" id="kicker"></div>
+      <h2 class="anchor" id="anchor"></h2>
+    </div>
+    <svg class="mark" id="mark" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6.5">
+      <path d="M23 13h54a11 11 0 0 1 11 11v44a11 11 0 0 1-11 11H61l-11 13-11-13H23a11 11 0 0 1-11-11V24a11 11 0 0 1 11-11z" stroke-linejoin="round"/>
+      <path d="M50 30a13.5 13.5 0 0 1 13.5 13.5C63.5 53 50 65 50 65S36.5 53 36.5 43.5A13.5 13.5 0 0 1 50 30z" stroke-linejoin="round"/>
+    </svg>
+    <div class="wordmark" id="wordmark">ADDRESSABLE</div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================================
+   Reel de Addressable. Todo se dibuja a partir de un solo valor: t.
+   La misma pagina sirve para mirar el movimiento en el navegador y para que
+   el render la fotografie cuadro a cuadro. Una sola implementacion.
+
+   El contenido entra por window.CONTENIDO; si no hay, usa el ejemplo.
+   =========================================================================== */
+
+const EJEMPLO = {
+  beats: [
+    { tono:'navy',  kicker:'',               lineas:['Tres meses apagada.','Nadie lo notó.'], mark:true },
+    { tono:'paper', kicker:'Contexto',       lineas:['Las consultas','seguían entrando.'] },
+    { tono:'paper', kicker:'El problema',    lineas:['Cuatro de cada diez','sin segundo mensaje.'] },
+    { tono:'paper', kicker:'La causa',       lineas:['El panel mostraba entradas.','No seguimiento.'] },
+    { tono:'navy',  kicker:'Lo que costaba', lineas:['Once citas.','Sin gastar más','en anuncios.'] },
+    { tono:'navy',  kicker:'',               lineas:['Revisa el recorrido,','no el panel.'], wordmark:true },
+  ]
+};
+
+const CONT = (typeof window !== 'undefined' && window.CONTENIDO) ? window.CONTENIDO : EJEMPLO;
+const BEATS = CONT.beats.map(b => ({
+  tono: b.tono || 'paper',
+  kicker: b.kicker || '',
+  lineas: b.lineas || [],
+  mark: !!b.mark,
+  wordmark: !!b.wordmark,
+}));
+
+/* --- el tamano sale del texto, no se fija a mano --------------------------- */
+function tamano(lineas, esHook) {
+  const largo = Math.max.apply(null, lineas.map(l => l.length));
+  const base = esHook ? 130 : 114;
+  if (largo > 30) return Math.round(base * 0.76);
+  if (largo > 24) return Math.round(base * 0.86);
+  return base;
+}
+
+/* --- los tiempos los fija la lectura -------------------------------------- */
+const EXTRA_HOOK = 0.6, EXTRA_CIERRE = 0.9;
+let DUR = 0;
+BEATS.forEach((b, i) => {
+  const palabras = b.lineas.join(' ').split(/\s+/).filter(Boolean).length;
+  const extra = i === 0 ? EXTRA_HOOK : (i === BEATS.length - 1 ? EXTRA_CIERRE : 0);
+  const d = Math.max(2.6, 1.2 + palabras * 0.32) + extra;
+  b.px = tamano(b.lineas, i === 0);
+  b.t0 = +DUR.toFixed(2);
+  b.t1 = +(DUR + d).toFixed(2);
+  DUR = b.t1;
+});
+window.DURACION = DUR;
+window.BEATS = BEATS;
+
+const TONOS = {
+  navy : { bg:'#102845', fg:'#FFF',    soft:'#A9BCD4', pista:'rgba(255,255,255,.22)' },
+  paper: { bg:'#DCE6F2', fg:'#102845', soft:'#52698A', pista:'rgba(16,40,69,.22)' },
+};
+const PASO = Math.round((1920 - 192) / BEATS.length);
+const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+const $ = (id) => document.getElementById(id);
+
+const stage = $('stage'), inner = $('inner'), spineOn = $('spineOn');
+const spine = document.querySelector('.spine');
+const kicker = $('kicker'), anchor = $('anchor'), mark = $('mark'), wordmark = $('wordmark');
+let pintado = -1;
+
+function pintar(i) {
+  const b = BEATS[i], c = TONOS[b.tono] || TONOS.paper;
+  stage.style.background = c.bg;
+  spine.style.background = c.pista;
+  spineOn.style.background = c.fg;
+  spineOn.style.height = PASO + 'px';
+  kicker.style.color = c.soft;
+  kicker.textContent = b.kicker;
+  anchor.style.color = c.fg;
+  anchor.style.fontSize = b.px + 'px';
+  anchor.style.lineHeight = b.px > 118 ? '.99' : '1.02';
+  // la marca va fuera de las lineas: cada linea recorta su contenido
+  anchor.innerHTML = '<span class="marca" id="marca" style="background:' + c.fg + '"></span>'
+    + b.lineas.map((l, k) => '<span class="ln"><i data-k="' + k + '">' + l + '</i></span>').join('');
+  mark.style.color = c.fg;
+  mark.style.opacity = b.mark ? 1 : 0;
+  wordmark.style.color = c.fg;
+  wordmark.style.opacity = b.wordmark ? 1 : 0;
+  pintado = i;
+}
+
+function dibujar(t) {
+  t = Math.max(0, Math.min(DUR, t));
+  let i = BEATS.findIndex(b => t >= b.t0 && t < b.t1);
+  if (i === -1) i = BEATS.length - 1;
+  const b = BEATS[i];
+  if (i !== pintado) pintar(i);
+
+  const local = t - b.t0, largo = b.t1 - b.t0;
+
+  // la espina avanza un paso: es la transicion entre beats
+  const destino = i * PASO, previo = Math.max(0, i - 1) * PASO;
+  spineOn.style.top = (previo + (destino - previo) * ease(local / 0.42)) + 'px';
+
+  kicker.style.opacity = ease((local - 0.10) / 0.28);
+
+  // el anclaje se revela por lineas con mascara: cortina, no fundido
+  anchor.querySelectorAll('.ln i').forEach((el, k) => {
+    const p = ease((local - (0.26 + k * 0.09)) / 0.46);
+    el.style.transform = 'translateY(' + ((1 - p) * 112) + '%)';
+  });
+
+  const m = $('marca');
+  if (m) m.style.width = (38 * ease((local - 0.20) / 0.40)) + 'px';
+
+  // la escena respira un 1%: con movimiento real no hace falta fingir zoom
+  inner.style.transform = 'scale(' + (1 + 0.010 * (local / largo)) + ')';
+}
+
+window.cuadro = function (t) { dibujar(t); return true; };
+window.plan = function () {
+  return { dur: DUR, beats: BEATS.map(b => ({ t0: b.t0, t1: b.t1, texto: b.lineas.join(' ') })) };
+};
+
+/* --- vista en el navegador: se reproduce sola y se escala para caber ------- */
+if (!new URLSearchParams(location.search).has('render')) {
+  let t0 = performance.now();
+  (function loop(now) {
+    let t = (now - t0) / 1000;
+    if (t >= DUR) { t0 = now; t = 0; }
+    dibujar(t);
+    requestAnimationFrame(loop);
+  })(performance.now());
+  const ajustar = () => {
+    const s = Math.min(window.innerHeight / 1920, window.innerWidth / 1080);
+    stage.style.transform = 'scale(' + s + ')';
+    document.body.style.width = (1080 * s) + 'px';
+  };
+  window.addEventListener('resize', ajustar);
+  ajustar();
+} else {
+  dibujar(0);
+}
+</script>

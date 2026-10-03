@@ -1,0 +1,11 @@
+{
+  "referencia": "ejemplo",
+  "beats": [
+    { "tono": "navy",  "kicker": "",               "lineas": ["Tres meses apagada.", "Nadie lo notó."], "mark": true },
+    { "tono": "paper", "kicker": "Contexto",       "lineas": ["Las consultas", "seguían entrando."] },
+    { "tono": "paper", "kicker": "El problema",    "lineas": ["Cuatro de cada diez", "sin segundo mensaje."] },
+    { "tono": "paper", "kicker": "La causa",       "lineas": ["El panel mostraba entradas.", "No seguimiento."] },
+    { "tono": "navy",  "kicker": "Lo que costaba", "lineas": ["Once citas.", "Sin gastar más", "en anuncios."] },
+    { "tono": "navy",  "kicker": "",               "lineas": ["Revisa el recorrido,", "no el panel."], "wordmark": true }
+  ]
+}
