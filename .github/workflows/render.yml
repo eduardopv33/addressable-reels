@@ -1,7 +1,8 @@
 name: Renderizar Reel
 
 # Lo dispara n8n con un repository_dispatch. El payload trae el contenido del
-# Reel y la URL a la que hay que devolver el resultado.
+# Reel y el tag con el que se va a publicar el Release. n8n elige ese tag, asi
+# que puede consultar el resultado por su cuenta sin que nadie lo llame de vuelta.
 on:
   repository_dispatch:
     types: [renderizar-reel]
@@ -35,6 +36,7 @@ jobs:
         env:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
           MANUAL: ${{ inputs.contenido }}
+          CORRIDA: ${{ github.run_number }}
         run: |
           node -e '
             const fs = require("fs");
@@ -48,11 +50,14 @@ jobs:
             if (!Array.isArray(c.beats) || c.beats.length < 3)
               throw new Error("contenido sin beats suficientes");
             fs.writeFileSync("contenido.json", JSON.stringify(c, null, 2));
-            const ref = (c.referencia || "reel").toString().replace(/[^a-zA-Z0-9_-]/g, "-");
+            const limpio = (s) => String(s).replace(/[^a-zA-Z0-9._-]/g, "-");
+            const ref = limpio(c.referencia || "reel");
+            // el tag lo manda n8n para poder ir a buscar el Release despues
+            const tag = c.reel_id ? limpio(c.reel_id) : "reel-" + ref + "-" + process.env.CORRIDA;
             fs.appendFileSync(process.env.GITHUB_OUTPUT,
               "referencia=" + ref + "\n" +
               "fila=" + (c.row_number || "") + "\n" +
-              "callback=" + (c.callback_url || "") + "\n");
+              "tag=" + tag + "\n");
           '
 
       - name: Renderizar
@@ -64,14 +69,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="reel-${{ steps.prep.outputs.referencia }}-${{ github.run_number }}"
+          TAG="${{ steps.prep.outputs.tag }}"
           gh release create "$TAG" out/reel.mp4 \
             --title "Reel ${{ steps.prep.outputs.referencia }}" \
             --notes "Render automatico. Fila ${{ steps.prep.outputs.fila }}. Duracion ${{ steps.render.outputs.duracion }} s." \
             --repo "${{ github.repository }}"
           URL="https://github.com/${{ github.repository }}/releases/download/$TAG/reel.mp4"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "MP4 publico en: $URL"
 
       - name: Comprobar que la URL es descargable
@@ -79,30 +83,3 @@ jobs:
           code=$(curl -sSL -o /dev/null -w '%{http_code}' "${{ steps.pub.outputs.url }}")
           echo "HTTP $code"
           test "$code" = "200" || { echo "La URL no responde 200; Instagram no podria descargarla"; exit 1; }
-
-      - name: Avisar a n8n
-        if: steps.prep.outputs.callback != ''
-        run: |
-          curl -sS -X POST "${{ steps.prep.outputs.callback }}" \
-            -H 'Content-Type: application/json' \
-            -d '{
-                  "ok": true,
-                  "row_number": "${{ steps.prep.outputs.fila }}",
-                  "referencia": "${{ steps.prep.outputs.referencia }}",
-                  "video_url": "${{ steps.pub.outputs.url }}",
-                  "duracion": "${{ steps.render.outputs.duracion }}",
-                  "tamano_kb": "${{ steps.render.outputs.tamano_kb }}",
-                  "run": "${{ github.run_id }}"
-                }'
-
-      - name: Avisar a n8n si fallo
-        if: failure() && steps.prep.outputs.callback != ''
-        run: |
-          curl -sS -X POST "${{ steps.prep.outputs.callback }}" \
-            -H 'Content-Type: application/json' \
-            -d '{
-                  "ok": false,
-                  "row_number": "${{ steps.prep.outputs.fila }}",
-                  "motivo": "El render fallo en GitHub Actions",
-                  "run": "${{ github.run_id }}"
-                }'

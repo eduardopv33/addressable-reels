@@ -4,12 +4,14 @@ Renderiza el sistema de movimiento de la marca a un MP4 vertical listo para Inst
 Corre en GitHub Actions, así que no necesita ninguna máquina encendida.
 
 ```
-n8n  →  repository_dispatch  →  Actions renderiza y publica un Release
-                                      ↓
-                              URL pública del MP4  →  n8n
-                                      ↓
+n8n elige un tag  →  repository_dispatch  →  Actions renderiza
+                                              ↓
+                                   Release publicado con ese tag
+                                              ↓
+                      n8n consulta el tag hasta que aparece el MP4
+                                              ↓
                         Telegram: video + aprobación protegida
-                                      ↓
+                                              ↓
                          aprobar  →  Instagram (media_type=REELS)
 ```
 
@@ -30,7 +32,7 @@ falta alguna, en los secretos de Actions.
 {
   "referencia": "fila-8",
   "row_number": 8,
-  "callback_url": "https://.../webhook/reel-listo",
+  "reel_id": "reel-f8-1791041234",
   "beats": [
     { "tono": "navy",  "kicker": "",         "lineas": ["Línea uno.", "Línea dos."], "mark": true },
     { "tono": "paper", "kicker": "Contexto", "lineas": ["..."] },
@@ -41,6 +43,7 @@ falta alguna, en los secretos de Actions.
 
 | campo | qué hace |
 |---|---|
+| `reel_id` | el tag del Release. n8n lo elige para poder ir a buscarlo después |
 | `tono` | `navy` o `paper`. El arco habitual es navy, papel ×3, navy, navy |
 | `kicker` | versalita sobre el titular, o vacío |
 | `lineas` | **los saltos de línea los decides tú**, no el navegador |
@@ -82,6 +85,10 @@ los beats con kicker salían en una tipografía de sistema sin que nada fallara.
 **Un solo origen de verdad.** La vista en el navegador y el render usan el mismo archivo:
 `window.cuadro(t)` dibuja el instante `t`, y el render pide los cuadros uno a uno. No hay
 dos implementaciones que se puedan desincronizar.
+
+**Nadie llama de vuelta a n8n.** El tag del Release lo decide n8n antes de disparar,
+así que después solo pregunta por él hasta que aparece. No hace falta exponer un webhook
+a internet, y una corrida fallida se nota porque el Release nunca llega.
 
 **Sale sin pista de audio**, a propósito. La música se le pone en Instagram al subirlo:
 no arrastras licencias y la puedes cambiar por pieza.
