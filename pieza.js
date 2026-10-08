@@ -53,34 +53,11 @@ function paso(titulo, args, extra) {
   }
 }
 
-/* La locucion se reutiliza si el guion no cambio desde que se grabo. Asi una
-   vista previa y despues la pieza final cuestan UNA llamada, no dos: lo que
-   cambia entre las dos es el render, no lo que se dice. */
-function locucionAlDia() {
-  if (!fs.existsSync(CONTENIDO) || !fs.existsSync(AUDIO)) return false;
-  try {
-    const c = JSON.parse(fs.readFileSync(CONTENIDO, 'utf8'));
-    if (!c.audio) return false;
-  } catch (e) { return false; }
-  return fs.statSync(CONTENIDO).mtimeMs > fs.statSync(GUION).mtimeMs;
-}
-
-if (locucionAlDia()) {
-  console.log('\n── 1/2  locucion\n');
-  console.log('  La de ' + AUDIO + ' sigue sirviendo: el guion no cambio desde');
-  console.log('  que se grabo. No se llama a ElevenLabs.');
-  console.log('  Para forzar una nueva, borra ' + CONTENIDO + '.');
-} else {
-  if (!process.env.ELEVENLABS_API_KEY) {
-    console.error('\nEl guion cambio desde la ultima locucion, asi que hay que grabarla\n' +
-      'de nuevo, y falta ELEVENLABS_API_KEY en el entorno.\n' +
-      '\nEn PowerShell:  $env:ELEVENLABS_API_KEY = "tu-llave"\n' +
-      '\nPara trabajar el movimiento sin gastar voz:\n' +
-      '  node voz.js ' + GUION + ' --seco ' + CONTENIDO);
-    process.exit(1);
-  }
-  paso('1/2  locucion y tiempos', ['voz.js', GUION, AUDIO, CONTENIDO]);
-}
+/* Quien decide si hay que volver a grabar es voz.js, no esto: los ajustes que
+   determinan el audio —voz, velocidad, pronunciacion— viven alli. Cuando esa
+   decision se tomaba aqui, comparando fechas de archivo, un cambio de
+   velocidad reutilizo el MP3 viejo sin avisar. */
+paso('1/2  locucion y tiempos', ['voz.js', GUION, AUDIO, CONTENIDO]);
 
 const VISTA = process.env.VISTA === '1';
 paso('2/2  render' + (VISTA ? '  (vista previa, unos 3 minutos y medio)'

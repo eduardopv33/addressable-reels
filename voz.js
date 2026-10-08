@@ -81,18 +81,19 @@ if (!GUION || !DESTINO_AUDIO || !DESTINO_CONTENIDO) {
   process.exit(1);
 }
 
-/* Como se dice lo que no se escribe como suena.
+/* Reescrituras para el locutor: como se manda una palabra que suena mal.
 
-   La marca se escribe Addressable y se lee a-dre-SA-ble. El modelo, viendo la
-   grafia inglesa, la pronuncia en ingles en medio de una frase en espanol.
+   Cambia unicamente el texto que se MANDA a locutar. El guion, lo que va en
+   pantalla y lo que queda guardado no se tocan: una cosa es como se escribe
+   una palabra y otra como se pronuncia.
 
-   Esto cambia unicamente el texto que se MANDA a locutar. El guion, lo que va
-   en pantalla y lo que queda guardado siguen diciendo Addressable: una cosa es
-   como se escribe una marca y otra como se pronuncia, y mezclarlas ensucia el
-   registro editorial. */
-const PRONUNCIACION = {
-  'Addressable': 'Adresable',
-};
+   Esta vacio, y conviene que siga asi mientras se pueda. Se probo poner aqui
+   "Addressable" -> "Adresable" para que la marca sonara en espanol, y estaba
+   mal: se dice en ingles. Se resolvio haciendo oir cinco grafias dentro de la
+   misma frase y eligiendo con el oido — una llamada corta, cero renders. Si
+   vuelve a aparecer una palabra que suene mal, ese es el camino: probar
+   grafias, no razonar sobre fonetica. */
+const PRONUNCIACION = {};
 
 function comoSeDice(frase) {
   let s = frase;
@@ -238,6 +239,35 @@ function pegarTiempos(crudos) {
 
   const { texto, rangos } = armarTexto(pasos);
 
+  /* Que determina el audio: lo que se dice y como se dice. Nada mas.
+
+     La primera version de esto comparaba contra la fecha del guion, y cuando
+     cambiaron la velocidad y la pronunciacion —que viven aqui, no en el
+     guion— reutilizo el MP3 viejo sin avisar. Se noto porque la pieza duraba
+     exactamente lo mismo que antes de acelerar la voz; podria no haberse
+     notado. Por eso ahora se compara el texto exacto que se mandaria y los
+     ajustes exactos con que se mandaria. */
+  const ajustes = {
+    voz: VOZ, modelo: MODELO,
+    velocidad: VELOCIDAD, estabilidad: ESTABILIDAD, parecido: PARECIDO,
+  };
+
+  if (!SECO && fs.existsSync(DESTINO_CONTENIDO)) {
+    let previo = null;
+    try { previo = JSON.parse(fs.readFileSync(DESTINO_CONTENIDO, 'utf8')); } catch (e) { previo = null; }
+    const audioPrevio = previo && previo.audio
+      ? path.resolve(path.dirname(path.resolve(DESTINO_CONTENIDO)), previo.audio)
+      : null;
+    if (previo && audioPrevio && fs.existsSync(audioPrevio) &&
+        previo.dicho === texto &&
+        JSON.stringify(previo.ajustes || {}) === JSON.stringify(ajustes)) {
+      console.log('La locucion de ' + previo.audio + ' sigue valiendo: ni el texto ni');
+      console.log('los ajustes de voz cambiaron. No se llama a ElevenLabs.');
+      console.log('Para forzar una nueva, borra ' + DESTINO_CONTENIDO + '.');
+      return;
+    }
+  }
+
   console.log('voz: ' + (SECO ? '(seco, sin llamar)'
     : VOZ + '  ' + MODELO + '  velocidad ' + VELOCIDAD + '  estabilidad ' + ESTABILIDAD));
   console.log('texto: ' + texto.length + ' caracteres, ' + pasos.length + ' frases\n');
@@ -267,6 +297,9 @@ function pegarTiempos(crudos) {
     referencia: guion.referencia || 'sin-referencia',
     voz: SECO ? null : VOZ,
     audio: rutaAudio,
+    /* lo que se mando y con que: es lo que decide si se puede reutilizar */
+    dicho: SECO ? null : texto,
+    ajustes: SECO ? null : ajustes,
     pasos: pasos.map(function (p, i) {
       const q = Object.assign({}, p);
       q.t0 = tiempos[i].t0;
