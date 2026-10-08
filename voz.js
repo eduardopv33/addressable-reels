@@ -61,7 +61,7 @@ const MODELO = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2';
    tambien ayuda: el drama vive en las subidas y bajadas.
 
    Son perillas a proposito. Cambiar esto cuesta una llamada, no una edicion. */
-const VELOCIDAD = Number(process.env.VOZ_VELOCIDAD || 1.08);
+const VELOCIDAD = Number(process.env.VOZ_VELOCIDAD || 1.13);
 const ESTABILIDAD = Number(process.env.VOZ_ESTABILIDAD || 0.62);
 const PARECIDO = Number(process.env.VOZ_PARECIDO || 0.8);
 
@@ -81,6 +81,27 @@ if (!GUION || !DESTINO_AUDIO || !DESTINO_CONTENIDO) {
   process.exit(1);
 }
 
+/* Como se dice lo que no se escribe como suena.
+
+   La marca se escribe Addressable y se lee a-dre-SA-ble. El modelo, viendo la
+   grafia inglesa, la pronuncia en ingles en medio de una frase en espanol.
+
+   Esto cambia unicamente el texto que se MANDA a locutar. El guion, lo que va
+   en pantalla y lo que queda guardado siguen diciendo Addressable: una cosa es
+   como se escribe una marca y otra como se pronuncia, y mezclarlas ensucia el
+   registro editorial. */
+const PRONUNCIACION = {
+  'Addressable': 'Adresable',
+};
+
+function comoSeDice(frase) {
+  let s = frase;
+  for (const escrito in PRONUNCIACION) {
+    s = s.split(escrito).join(PRONUNCIACION[escrito]);
+  }
+  return s;
+}
+
 /* Las frases van separadas por un espacio y nada mas. Nada de puntuacion
    agregada: lo que se manda es exactamente lo que se mide. */
 function armarTexto(pasos) {
@@ -88,7 +109,7 @@ function armarTexto(pasos) {
   const rangos = [];
   let pos = 0;
   pasos.forEach(function (p, i) {
-    const frase = String(p.narracion || '').trim().replace(/\s+/g, ' ');
+    const frase = comoSeDice(String(p.narracion || '').trim().replace(/\s+/g, ' '));
     if (!frase) throw new Error('el paso ' + (i + 1) + ' no tiene narracion');
     if (i > 0) pos += 1;
     rangos.push({ desde: pos, hasta: pos + frase.length - 1 });
@@ -106,7 +127,8 @@ function tiemposEstimados(pasos) {
      segundo. La voz anterior iba a 2,64 y con ese numero el ensayo salia
      trece segundos mas largo que la pieza — suficiente para juzgar mal el
      ritmo de un guion que en realidad estaba bien. */
-  const RITMO = Number(process.env.VOZ_PALABRAS_POR_SEGUNDO || 3.5);
+  /* se escala con la velocidad para que el ensayo no mienta al subirla */
+  const RITMO = Number(process.env.VOZ_PALABRAS_POR_SEGUNDO || 3.5 * (VELOCIDAD / 1.08));
   let t = 0.35;
   return pasos.map(function (p) {
     const palabras = String(p.narracion).split(/\s+/).filter(Boolean).length;

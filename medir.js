@@ -69,7 +69,9 @@ function buscarChrome() {
   for (let n = 0; n < CUANTOS; n++) {
     const f = Math.floor((n / CUANTOS) * total);
     await pagina.evaluate((t) => window.cuadro(t), f / FPS);
-    await marco.screenshot({ encoding: 'binary' });
+    await marco.screenshot(process.env.JPEG
+      ? { encoding: 'binary', type: 'jpeg', quality: Number(process.env.JPEG) }
+      : { encoding: 'binary' });
   }
   const ms = (Date.now() - arranque) / CUANTOS;
 

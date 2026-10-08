@@ -34,6 +34,18 @@ const DPR = VISTA ? 0.5 : 1;
 const PRESET = VISTA ? 'veryfast' : 'slow';
 const CRF = VISTA ? '26' : '18';
 
+/* Los cuadros se capturan en JPEG, no en PNG.
+
+   PNG es sin perdida, y este formato tiene degradados, sombras y desenfoque:
+   mucha entropia que comprimir. Medido en esta pieza, 380 ms por cuadro contra
+   100 en JPEG. Y la compresion sin perdida no servia de nada, porque el cuadro
+   se recomprime a H.264 inmediatamente despues.
+
+   El formato de tarjetas nunca sufrio esto porque un fondo plano comprime en
+   nada: de ahi venia su ventaja de 4x, que no era del movimiento sino del
+   encoder de imagenes. */
+const JPEG = VISTA ? 85 : 95;
+
 /* Que sistema de movimiento se fotografia. motion.html son las tarjetas de
    texto; flujo.html es el flujo narrado con camara. */
 const MOTION = process.env.MOTION || 'motion.html';
@@ -112,7 +124,8 @@ function buscarChrome() {
   const marco = await pagina.$('#stage');
   for (let f = 0; f < total; f++) {
     await pagina.evaluate((t) => window.cuadro(t), f / FPS);
-    await marco.screenshot({ path: path.join(TMP, `f${String(f).padStart(5, '0')}.png`) });
+    await marco.screenshot({ path: path.join(TMP, `f${String(f).padStart(5, '0')}.jpg`),
+      type: 'jpeg', quality: JPEG });
     if (f % 150 === 0) console.log(`   cuadro ${f}/${total}`);
   }
   await navegador.close();
@@ -129,7 +142,7 @@ function buscarChrome() {
     throw new Error('El contenido pide el audio ' + contenido.audio + ' y no esta en ' + audio);
   }
 
-  const args = ['-y', '-framerate', String(FPS), '-i', path.join(TMP, 'f%05d.png')];
+  const args = ['-y', '-framerate', String(FPS), '-i', path.join(TMP, 'f%05d.jpg')];
   if (conVoz) args.push('-i', audio);
   args.push('-c:v', 'libx264', '-preset', PRESET, '-crf', CRF,
     '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.1');
