@@ -31,7 +31,7 @@ const PROHIBIDAS = [
 
 function sinTildes(s) {
   return String(s == null ? '' : s)
-    .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 /* Todo lo que se ve en pantalla en un paso, como un solo texto. */

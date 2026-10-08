@@ -67,8 +67,8 @@
       }
     },
     {
-      "narracion": "Con Addressable el catálogo, los pedidos y el estado viven en la misma herramienta.",
-      "rotulo": "Con Addressable",
+      "narracion": "Con Addressable Commerce el catálogo, los pedidos y el estado viven en la misma herramienta.",
+      "rotulo": "Con Addressable Commerce",
       "titulo": "En una sola\nherramienta.",
       "hito": true,
       "sana": true,
