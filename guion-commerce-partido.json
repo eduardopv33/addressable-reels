@@ -4,51 +4,122 @@
   "fuente": "Addressable Commerce es la linea de trabajo para negocios que venden productos. Incluye tienda o catalogo online, pedidos ordenados en un solo lugar y seguimiento de lo que pasa despues de la compra. Se arma por etapas: se empieza por lo basico y se crece cuando el negocio lo pide. Las etapas se llaman Start, Growth y Scale.",
   "_registro": "Esto es un problema cotidiano, no una tragedia: frases con aire, sin sentencias, sin acusar. Y la narracion va en frases COMPLETAS; si una no cabe se cambia la idea, no se le quitan palabras.",
   "_rotulos": "Los rotulos son preguntas y los titulares su respuesta. Asi un titular de tres palabras se lee como contestacion y no como recorte.",
-  "_vocabulario": "Tres cosas y un nombre para cada una: EL CATALOGO, LOS PEDIDOS, EL ESTADO. Ese nombre no cambia en ningun plano: ni en el rotulo, ni en la ficha, ni en el resumen. En la version anterior la tercera se llamaba '¿Y si ya salio?', despues 'preguntar', despues 'Seguimiento' y al final 'El estado' — cuatro etiquetas para una sola idea, imposible de seguir. Y el contador: son tres LUGARES, que es la palabra que ya usaron los planos 2 y 3 ('en un lado', 'en otro'), no 'sistemas', que no se habia dicho nunca.",
+  "_vocabulario": "Tres cosas y un nombre para cada una: EL CATALOGO, LOS PEDIDOS, EL ESTADO. Ese nombre no cambia en ningun plano. Y no se las agrupa bajo una palabra falsa: dos son herramientas y la tercera es un papel, asi que se dice eso. Decir \"tres herramientas\" seria comodo y seria mentira; decir \"tres lugares\" era vago. La asimetria ademas es mejor linea: el tercer sitio donde vive tu informacion ni siquiera es un sistema.",
   "pasos": [
-    { "hook": true,
+    {
+      "hook": true,
       "narracion": "Un cliente te escribe preguntando en qué va su pedido. Y no lo sabes de memoria.",
-      "burbuja": "¿En qué va mi pedido?", "sello": "09:12",
+      "burbuja": "¿En qué va mi pedido?",
+      "sello": "09:12",
       "titulo": "Y no lo sabes\nde memoria.",
-      "camara": { "y": 470, "z": 1.00 } },
-
-    { "narracion": "Porque el catálogo lo tienes en un lado.",
-      "rotulo": "¿El catálogo?", "titulo": "En un lado.",
-      "tarjeta": { "etiqueta": "Catálogo", "texto": "fotos, precios, stock", "desvio": 0 },
-      "camara": { "y": 1240, "z": 1.24 } },
-
-    { "narracion": "Los pedidos te llegan por otro lado distinto.",
-      "rotulo": "¿Los pedidos?", "titulo": "En otro.", "corte": true,
-      "tarjeta": { "etiqueta": "Pedidos", "texto": "quién pidió qué, y cuándo", "desvio": 170 },
-      "camara": { "y": 1960, "z": 1.24 } },
-
-    { "narracion": "Y el estado de cada pedido lo tienes anotado por ahí, o se lo preguntas a alguien.",
-      "rotulo": "¿El estado?", "titulo": "Anotado\npor ahí.", "corte": true,
+      "camara": {
+        "y": 470,
+        "z": 1
+      }
+    },
+    {
+      "narracion": "Porque el catálogo lo tienes en una herramienta.",
+      "rotulo": "¿El catálogo?",
+      "titulo": "En una\nherramienta.",
+      "tarjeta": {
+        "etiqueta": "Catálogo",
+        "texto": "fotos, precios, stock",
+        "desvio": 0
+      },
+      "camara": {
+        "y": 1240,
+        "z": 1.24
+      }
+    },
+    {
+      "narracion": "Los pedidos te llegan por otra distinta.",
+      "rotulo": "¿Los pedidos?",
+      "titulo": "En otra.",
+      "corte": true,
+      "tarjeta": {
+        "etiqueta": "Pedidos",
+        "texto": "quién pidió qué, y cuándo",
+        "desvio": 170
+      },
+      "camara": {
+        "y": 1960,
+        "z": 1.24
+      }
+    },
+    {
+      "narracion": "Y el estado de cada pedido lo tienes anotado a mano, o en la cabeza de alguien.",
+      "rotulo": "¿El estado?",
+      "titulo": "En un papel.",
+      "corte": true,
       "nota": "pedido 118 — ¿despachado?\npreguntar a Caro",
-      "camara": { "y": 2680, "z": 1.22 } },
-
-    { "narracion": "Nada de eso está mal hecho. El problema es que son tres lugares que no se hablan.",
-      "rotulo": "No está mal hecho", "titulo": "Son tres lugares\nque no se hablan.",
-      "camara": { "y": 3360, "z": 1.26 } },
-
-    { "narracion": "Con Addressable el catálogo, los pedidos y el estado viven en el mismo lugar.",
-      "rotulo": "Con Addressable", "titulo": "En un solo\nlugar.", "hito": true, "sana": true,
-      "fichas": ["Catálogo", "Pedidos", "Estado"],
-      "camara": { "y": 4040, "z": 1.18 } },
-
-    { "narracion": "Así que la próxima vez que te pregunten, abres una pantalla y lo sabes al instante.",
-      "rotulo": "", "titulo": "", "hito": true,
-      "remate": "Abres una pantalla", "pie": "y lo sabes al instante",
-      "camara": { "y": 4720, "z": 1.26 } },
-
-    { "narracion": "Y no hace falta montarlo todo de una vez. Empiezas por lo básico y creces cuando el negocio lo pida.",
-      "cierre": true, "camara": { "y": 5440, "z": 1.00 },
+      "camara": {
+        "y": 2680,
+        "z": 1.22
+      }
+    },
+    {
+      "narracion": "Nada de eso está mal hecho. El problema es que ninguno de los tres habla con los otros.",
+      "rotulo": "Dos herramientas y un papel",
+      "titulo": "Y ninguno habla\ncon los otros.",
+      "camara": {
+        "y": 3360,
+        "z": 1.26
+      }
+    },
+    {
+      "narracion": "Con Addressable el catálogo, los pedidos y el estado viven en la misma herramienta.",
+      "rotulo": "Con Addressable",
+      "titulo": "En una sola\nherramienta.",
+      "hito": true,
+      "sana": true,
+      "fichas": [
+        "Catálogo",
+        "Pedidos",
+        "Estado"
+      ],
+      "camara": {
+        "y": 4040,
+        "z": 1.18
+      }
+    },
+    {
+      "narracion": "Así que la próxima vez que te pregunten, abres una pantalla y lo sabes al instante.",
+      "rotulo": "",
+      "titulo": "",
+      "hito": true,
+      "remate": "Abres una pantalla",
+      "pie": "y lo sabes al instante",
+      "camara": {
+        "y": 4720,
+        "z": 1.26
+      }
+    },
+    {
+      "narracion": "Y no hace falta montarlo todo de una vez. Empiezas por lo básico y creces cuando el negocio lo pida.",
+      "cierre": true,
+      "camara": {
+        "y": 5440,
+        "z": 1
+      },
       "resumen": [
-        { "txt": "El catálogo, en un lado" },
-        { "txt": "Los pedidos, en otro" },
-        { "txt": "El estado, anotado por ahí" },
-        { "txt": "Los tres en un solo lugar", "hito": true },
-        { "txt": "Y empiezas por lo básico", "hito": true }
-      ] }
+        {
+          "txt": "El catálogo, en una herramienta"
+        },
+        {
+          "txt": "Los pedidos, en otra"
+        },
+        {
+          "txt": "El estado, en un papel"
+        },
+        {
+          "txt": "Los tres en una herramienta",
+          "hito": true
+        },
+        {
+          "txt": "Y empiezas por lo básico",
+          "hito": true
+        }
+      ]
+    }
   ]
 }

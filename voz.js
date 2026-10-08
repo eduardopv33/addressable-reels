@@ -100,14 +100,17 @@ function armarTexto(pasos) {
 
 /* --- modo seco: tiempos estimados, sin llamar a nadie ---------------------- */
 function tiemposEstimados(pasos) {
-  /* Calibrado contra locuciones reales: 98 palabras salieron en 37,2 s con la
-     voz actual a velocidad 1.08, o sea 2,64 palabras por segundo. El relleno
-     por frase estaba en 0,45 s y hacia que el ensayo saliera seis segundos
-     mas largo que la pieza; con 0,15 el estimado sigue a la realidad. */
+  /* El ritmo depende de la voz, asi que esto se calibra contra locuciones
+     reales y hay que rehacerlo si se cambia de voz. Con la voz clonada de
+     Eduardo a velocidad 1.08: 113 palabras en 32,3 s, o sea 3,5 palabras por
+     segundo. La voz anterior iba a 2,64 y con ese numero el ensayo salia
+     trece segundos mas largo que la pieza — suficiente para juzgar mal el
+     ritmo de un guion que en realidad estaba bien. */
+  const RITMO = Number(process.env.VOZ_PALABRAS_POR_SEGUNDO || 3.5);
   let t = 0.35;
   return pasos.map(function (p) {
     const palabras = String(p.narracion).split(/\s+/).filter(Boolean).length;
-    const d = palabras / 2.64 + 0.15;
+    const d = palabras / RITMO + 0.15;
     const r = { t0: +t.toFixed(3), t1: +(t + d).toFixed(3) };
     t = r.t1;
     return r;
