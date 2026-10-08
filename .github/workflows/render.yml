@@ -3,6 +3,13 @@ name: Renderizar Reel
 # Lo dispara n8n con un repository_dispatch. El payload trae el contenido del
 # Reel y el tag con el que se va a publicar el Release. n8n elige ese tag, asi
 # que puede consultar el resultado por su cuenta sin que nadie lo llame de vuelta.
+#
+# Dos formatos, y el payload dice cual:
+#   beats[]  ->  tarjetas de texto, sin audio      (motion.html)
+#   pasos[]  ->  flujo narrado, con locucion       (flujo.html)
+#
+# La locucion se pide desde aqui y no desde n8n porque el MP3 pesa medio mega y
+# el client_payload de GitHub admite 64 KB: el audio no cabe en el disparo.
 on:
   repository_dispatch:
     types: [renderizar-reel]
@@ -19,7 +26,7 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30    # el flujo narrado tarda mas que las tarjetas
 
     steps:
       - uses: actions/checkout@v4
@@ -45,11 +52,17 @@ jobs:
             const manual = (process.env.MANUAL || "").trim();
             let c;
             if (manual) c = JSON.parse(manual);
-            else if (payload.beats) c = payload;
+            else if (payload.pasos || payload.beats) c = payload;
             else c = JSON.parse(fs.readFileSync("contenido.json", "utf8"));
-            if (!Array.isArray(c.beats) || c.beats.length < 3)
-              throw new Error("contenido sin beats suficientes");
-            fs.writeFileSync("contenido.json", JSON.stringify(c, null, 2));
+
+            // el formato lo dice la forma del contenido, no una bandera aparte
+            const narrado = Array.isArray(c.pasos);
+            const piezas = narrado ? c.pasos : c.beats;
+            if (!Array.isArray(piezas) || piezas.length < 3)
+              throw new Error("contenido sin beats ni pasos suficientes");
+
+            fs.writeFileSync("entrada.json", JSON.stringify(c, null, 2));
+
             const limpio = (s) => String(s).replace(/[^a-zA-Z0-9._-]/g, "-");
             const ref = limpio(c.referencia || "reel");
             // el tag lo manda n8n para poder ir a buscar el Release despues
@@ -57,12 +70,49 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT,
               "referencia=" + ref + "\n" +
               "fila=" + (c.row_number || "") + "\n" +
+              "narrado=" + (narrado ? "si" : "no") + "\n" +
+              "motion=" + (narrado ? "flujo.html" : "motion.html") + "\n" +
               "tag=" + tag + "\n");
           '
 
+      # El QA del guion ya corrio en n8n antes de disparar esto. Se repite aqui
+      # porque una pieza mal formada gasta caracteres de ElevenLabs y minutos de
+      # runner, y comprobarlo cuesta milisegundos.
+      - name: Revisar el guion
+        if: steps.prep.outputs.narrado == 'si'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const { qaFlujo } = require("./qa-flujo");
+            const g = JSON.parse(fs.readFileSync("entrada.json", "utf8"));
+            const r = qaFlujo(g, g.fuente || "");
+            if (!r.qa_ok) {
+              console.error("El guion no pasa el QA:");
+              r.motivos.forEach(m => console.error("  - " + m));
+              process.exit(1);
+            }
+            console.log("QA del guion: pasa");
+          '
+
+      - name: Locutar
+        if: steps.prep.outputs.narrado == 'si'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+        run: |
+          test -n "$ELEVENLABS_API_KEY" || { echo "Falta el secreto ELEVENLABS_API_KEY"; exit 1; }
+          test -n "$ELEVENLABS_VOICE_ID" || { echo "Falta el secreto ELEVENLABS_VOICE_ID"; exit 1; }
+          node voz.js entrada.json out/voz.mp3 salida.json
+
+      - name: Usar el contenido tal cual cuando no lleva voz
+        if: steps.prep.outputs.narrado == 'no'
+        run: cp entrada.json salida.json
+
       - name: Renderizar
         id: render
-        run: node render.js contenido.json out/reel.mp4
+        env:
+          MOTION: ${{ steps.prep.outputs.motion }}
+        run: node render.js salida.json out/reel.mp4
 
       - name: Publicar el MP4 como Release
         id: pub
