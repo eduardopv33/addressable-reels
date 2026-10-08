@@ -1,3 +1,6 @@
 node_modules/
 tmp/
 out/
+vistazo/
+voz.local.json
+contenido-*.json

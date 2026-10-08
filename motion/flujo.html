@@ -1,0 +1,490 @@
+<title>Addressable · Reel de flujo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=IBM+Plex+Sans:wght@400;500&display=swap');
+
+/* ===========================================================================
+   Paleta y materia.
+
+   El navy no es un color plano: es un degradado con vineta en los bordes. Eso,
+   mas sombras de radio grande y poca opacidad, es casi todo lo que separa una
+   pieza que se ve cara de una que se ve hecha en CSS.
+   =========================================================================== */
+:root{
+  --navy:#143253; --navy-alto:#1D4374; --navy-bajo:#112A46;
+  --claro:#FFFFFF; --claro-suave:#A9BCD4; --claro-tenue:rgba(255,255,255,.54);
+
+  /* un solo acento y se usa poco: navy con laton lee caro, navy con seis
+     colores lee barato */
+  --acento:#E3B470;
+
+  --vidrio:rgba(255,255,255,.055);
+  --vidrio-borde:rgba(255,255,255,.11);
+  --vidrio-luz:rgba(255,255,255,.17);
+
+  /* sombras de radio grande y poca opacidad: una sombra corta y oscura abarata */
+  --alza-1:0 2px 10px rgba(4,12,24,.22);
+  --alza-2:0 20px 54px rgba(4,12,24,.38);
+  --alza-3:0 54px 130px rgba(4,12,24,.52);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;align-items:center;justify-content:center;
+     min-height:100vh;font-family:'IBM Plex Sans',sans-serif;overflow:hidden}
+
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;
+       background:var(--navy);transform-origin:top left}
+
+/* El fondo vive en el escenario, no en el lienzo: no viaja con la camara.
+   Son degradados, que son baratos. Aqui hubo grano de pelicula y se quito: una
+   capa de ruido a pantalla completa cuesta 470 ms por cuadro en render por
+   software — la mitad de la pieza — venga de feTurbulence, de un blend o de un
+   PNG horneado; se probaron los tres. Y el grano fino es justo lo primero que
+   descarta el compresor de Instagram, asi que se pagaba el doble de render por
+   una textura que no llega al telefono. Los degradados si sobreviven. */
+#fondo{position:absolute;inset:0;
+  background:
+    radial-gradient(130% 90% at 12% 4%, var(--navy-alto) 0%, rgba(23,54,92,0) 58%),
+    radial-gradient(100% 70% at 88% 98%, rgba(227,180,112,.10) 0%, rgba(227,180,112,0) 60%),
+    linear-gradient(168deg, var(--navy) 0%, var(--navy-bajo) 100%)}
+#vineta{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 78% at 50% 44%, rgba(0,0,0,0) 52%, rgba(0,0,0,.20) 100%)}
+
+/* ---------------------------------------------------------------------------
+   El lienzo es mas alto que el cuadro. La camara lo mueve y lo escala.
+   --------------------------------------------------------------------------- */
+#lienzo{position:absolute;left:0;top:0;width:1080px;height:6200px;
+        transform-origin:0 0;will-change:transform}
+
+/* La espina: el riel por el que baja la camara y por el que avanza el flujo.
+   Arranca despues del titular de apertura, que no lleva nodo: una linea
+   cruzando el hook se ve como un error, no como un recurso. Y se desvanece en
+   los dos extremos, para que nunca se vea donde empieza ni donde termina. */
+.riel{position:absolute;left:214px;top:820px;width:3px;
+      background:rgba(255,255,255,.12);
+      -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px,#000 calc(100% - 130px),transparent 100%)}
+.riel__on{position:absolute;left:214px;top:820px;width:3px;height:0;
+      background:linear-gradient(180deg,var(--claro-suave),var(--claro));
+      box-shadow:0 0 22px rgba(169,188,212,.45);
+      -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 110px,#000 100%)}
+
+/* un paso del flujo */
+.paso{position:absolute;left:150px;width:800px;opacity:0;
+      will-change:transform,opacity,filter}
+.nodo{position:absolute;left:56px;top:16px;width:19px;height:19px;border-radius:50%;
+      background:var(--navy-bajo);border:3px solid var(--claro-suave);
+      box-shadow:0 0 0 8px rgba(13,32,55,.96), 0 0 26px rgba(169,188,212,.4)}
+.paso--hito .nodo{border-color:var(--acento);
+      box-shadow:0 0 0 8px rgba(13,32,55,.96), 0 0 34px rgba(227,180,112,.6)}
+
+.rotulo{margin-left:116px;font-size:27px;font-weight:500;letter-spacing:.19em;
+      text-transform:uppercase;color:var(--claro-tenue);margin-bottom:24px}
+.paso--hito .rotulo{color:var(--acento)}
+.titulo{margin-left:116px;font-family:Montserrat,sans-serif;font-weight:800;
+      font-size:80px;line-height:1.02;letter-spacing:-.029em;color:var(--claro);
+      max-width:680px}
+.paso--hook .titulo{font-size:92px;margin-left:0;max-width:820px;margin-top:44px}
+.paso--hook .burbuja{margin-left:0;margin-top:0;max-width:700px}
+
+/* Una caja que representa un lugar donde vive algo: el catalogo, los pedidos,
+   una planilla. Van desalineadas a proposito — si se alinean parecen un
+   sistema, y el punto es justamente que no lo son. */
+.tarjeta{position:relative;margin:36px 0 0 116px;width:480px;padding:30px 34px;
+      border-radius:18px;background:var(--vidrio);
+      border:1px solid var(--vidrio-borde);box-shadow:var(--alza-2)}
+.tarjeta::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;
+      border-radius:18px 18px 0 0;
+      background:linear-gradient(90deg,transparent,var(--vidrio-luz) 34%,transparent)}
+.tarjeta__etq{font-size:22px;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--claro-tenue);margin-bottom:12px}
+.tarjeta__txt{font-size:34px;line-height:1.26;color:var(--claro)}
+
+/* tarjetas de vidrio: relleno translucido, borde de 1px y una luz arriba */
+.burbuja{position:relative;margin:36px 0 0 116px;max-width:620px;padding:30px 36px;
+      border-radius:28px 28px 28px 8px;background:rgba(255,255,255,.085);
+      border:1px solid var(--vidrio-borde);box-shadow:var(--alza-2);
+      font-size:40px;line-height:1.26;color:var(--claro)}
+.burbuja::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;
+      border-radius:28px 28px 0 0;
+      background:linear-gradient(90deg,transparent,var(--vidrio-luz) 34%,transparent)}
+.burbuja--muda{color:var(--claro-tenue);background:rgba(255,255,255,.035)}
+.sello{display:inline-block;margin-left:16px;font-size:23px;color:var(--claro-tenue);
+      letter-spacing:.06em;vertical-align:middle}
+
+/* nota a mano: va torcida a proposito, es el sintoma del trabajo manual */
+.nota{position:relative;margin:38px 0 0 150px;width:430px;padding:32px 34px;
+      border-radius:5px;background:#F2EDE1;color:#3A342A;
+      box-shadow:var(--alza-3);transform:rotate(-2.3deg);
+      font-size:33px;line-height:1.32}
+
+/* los tres pasos que se arman: fichas en fila, entran escalonadas */
+.fichas{display:flex;gap:16px;margin:40px 0 0 116px}
+.ficha{flex:1;padding:26px 22px;border-radius:16px;background:var(--vidrio);
+      border:1px solid var(--vidrio-borde);box-shadow:var(--alza-1);
+      font-size:27px;line-height:1.24;color:var(--claro);opacity:.3}
+.ficha--viva{opacity:1;border-color:rgba(227,180,112,.5);
+      box-shadow:var(--alza-2),0 0 36px rgba(227,180,112,.18)}
+
+/* el remate */
+.remate{position:relative;margin:40px 0 0 116px;padding:40px 44px;border-radius:22px;
+      background:linear-gradient(140deg,rgba(227,180,112,.18),rgba(227,180,112,.05));
+      border:1px solid rgba(227,180,112,.42);box-shadow:var(--alza-3)}
+.remate__txt{font-family:Montserrat,sans-serif;font-weight:700;font-size:46px;
+      letter-spacing:-.012em;color:var(--acento)}
+.remate__pie{margin-top:12px;font-size:27px;color:var(--claro-tenue)}
+
+/* el plano final: la misma espina, comprimida, con todos los nodos encendidos */
+.resumen{position:absolute;left:150px;width:800px;opacity:0}
+.fila{position:relative;height:112px}
+.fila__nodo{position:absolute;left:56px;top:34px;width:15px;height:15px;border-radius:50%;
+      background:var(--claro);box-shadow:0 0 0 7px rgba(13,32,55,.96),0 0 22px rgba(169,188,212,.5)}
+.fila--hito .fila__nodo{background:var(--acento);
+      box-shadow:0 0 0 7px rgba(13,32,55,.96),0 0 28px rgba(227,180,112,.65)}
+.fila__txt{margin-left:116px;font-size:34px;line-height:1.3;color:var(--claro-suave);
+      padding-top:22px}
+.fila--hito .fila__txt{color:var(--claro)}
+
+/* firma y sigla viven en el cuadro, no en el lienzo */
+.firma{position:absolute;left:150px;top:1570px;font-family:Montserrat,sans-serif;
+      font-weight:800;font-size:30px;letter-spacing:.2em;color:var(--claro);opacity:0}
+.sigla{position:absolute;right:96px;top:208px;width:74px;height:74px;opacity:0}
+</style>
+
+<div id="stage">
+  <div id="fondo"></div>
+  <div id="lienzo"></div>
+  <div id="vineta"></div>
+  <svg class="sigla" id="sigla" viewBox="0 0 100 100" fill="none" stroke="#FFF" stroke-width="6.5">
+    <path d="M23 13h54a11 11 0 0 1 11 11v44a11 11 0 0 1-11 11H61l-11 13-11-13H23a11 11 0 0 1-11-11V24a11 11 0 0 1 11-11z" stroke-linejoin="round"/>
+    <path d="M50 30a13.5 13.5 0 0 1 13.5 13.5C63.5 53 50 65 50 65S36.5 53 36.5 43.5A13.5 13.5 0 0 1 50 30z" stroke-linejoin="round"/>
+  </svg>
+  <div class="firma" id="firma">ADDRESSABLE</div>
+</div>
+
+<script>
+/* ===========================================================================
+   Reel de flujo. Todo se dibuja desde un solo valor: t.
+   La misma pagina sirve para mirarlo en el navegador y para que render.js la
+   fotografie cuadro a cuadro, igual que motion.html.
+
+   El contenido entra por window.CONTENIDO. Si cada paso trae t0 y t1, esos
+   mandan: son los tiempos reales de la locucion. Si no vienen, se estiman por
+   lectura, para poder trabajar el movimiento sin gastar una llamada de voz.
+   =========================================================================== */
+
+const EJEMPLO = {
+  referencia: 'ejemplo',
+  pasos: [
+    { hook:true, titulo:'Publicaste el catálogo.\nNadie puede comprar.',
+      camara:{ y:430, z:1.00 } },
+
+    { rotulo:'Llega', titulo:'Preguntan el precio.',
+      burbuja:'¿Cuánto sale con envío a Ñuñoa?',
+      camara:{ y:1100, z:1.26 } },
+
+    { rotulo:'Se cae', titulo:'Nadie vuelve\na escribir.',
+      burbuja:'Visto', mudo:true, sello:'14:02',
+      camara:{ y:1720, z:1.26 } },
+
+    { rotulo:'El costo', titulo:'El pedido vive\nen un papel.',
+      nota:'3 cajas — Ñuñoa\n¿confirmó? preguntar',
+      camara:{ y:2360, z:1.22 } },
+
+    { rotulo:'Lo que cambia', titulo:'El chat se vuelve\nel camino.', hito:true,
+      fichas:['Responde el precio','Botón de confirmar','Pedido registrado'],
+      camara:{ y:3040, z:1.18 } },
+
+    { rotulo:'', titulo:'', hito:true,
+      remate:'Pedido guardado', pie:'sin que nadie lo anote',
+      camara:{ y:3700, z:1.26 } },
+
+    { cierre:true, camara:{ y:4420, z:1.00 },
+      resumen:[
+        { txt:'Llega la consulta' },
+        { txt:'Responde el precio' },
+        { txt:'Confirma con un botón' },
+        { txt:'El pedido queda registrado', hito:true },
+        { txt:'Nadie lo anota a mano', hito:true },
+      ] },
+  ]
+};
+
+const CONT = (typeof window !== 'undefined' && window.CONTENIDO) ? window.CONTENIDO : EJEMPLO;
+const PASOS = CONT.pasos || [];
+
+/* --- tiempos: manda la voz; si no hay voz, se estima por lectura ----------- */
+const TRAE_VOZ = PASOS.length > 0 &&
+  PASOS.every(function (p) { return typeof p.t0 === 'number' && typeof p.t1 === 'number'; });
+let DUR = 0;
+if (TRAE_VOZ) {
+  PASOS.forEach(function (p) { DUR = Math.max(DUR, p.t1); });
+} else {
+  PASOS.forEach(function (p, i) {
+    const dicho = [p.titulo, p.burbuja, p.nota, p.remate, p.pie]
+      .concat(p.fichas || []).filter(Boolean).join(' ');
+    const palabras = dicho.split(/\s+/).filter(Boolean).length;
+    const d = p.cierre ? 3.6 : Math.max(2.8, 1.4 + palabras * 0.34) + (i === 0 ? 0.6 : 0);
+    p.t0 = +DUR.toFixed(2);
+    p.t1 = +(DUR + d).toFixed(2);
+    DUR = p.t1;
+  });
+}
+
+/* --- curvas ---------------------------------------------------------------- */
+const sat = function (x) { return Math.min(1, Math.max(0, x)); };
+/* salida cubica: para revelados */
+const salida = function (x) { return 1 - Math.pow(1 - sat(x), 3); };
+/* entrada y salida: la camara nunca arranca ni frena de golpe */
+const suave = function (x) {
+  x = sat(x);
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+};
+/* un pelo de rebote: las tarjetas se pasan y se asientan */
+const rebote = function (x) {
+  x = sat(x);
+  const c = 1.38;
+  return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
+};
+
+const $ = function (id) { return document.getElementById(id); };
+
+/* Donde empieza el riel y hasta donde llega. El alto se deduce de los pasos:
+   atarlo a mano hacia que al crecer el guion la linea se quedara corta sin que
+   nadie se enterara hasta ver el render. */
+const RIEL_Y = 820;
+const RIEL_ALTO = Math.max.apply(null, PASOS.map(function (p) { return p.camara.y; }))
+  + 480 - RIEL_Y;
+const lienzo = $('lienzo');
+
+/* --- se arma el DOM una sola vez ------------------------------------------ */
+const riel = document.createElement('div');
+riel.className = 'riel';
+riel.style.height = RIEL_ALTO + 'px';
+lienzo.appendChild(riel);
+const rielOn = document.createElement('div');
+rielOn.className = 'riel__on';
+lienzo.appendChild(rielOn);
+
+/* La caja de un paso se centra en el punto que mira la camara, un poco por
+   encima: Instagram tapa unos 320 px abajo y solo 120 arriba, asi que el centro
+   optico del cuadro no es su centro geometrico. */
+const SUBIDA = 50;
+
+const CAJAS = [];
+PASOS.forEach(function (p) {
+  const el = document.createElement('div');
+  let h = '';
+
+  if (p.cierre) {
+    el.className = 'resumen';
+    h = (p.resumen || []).map(function (f) {
+      return '<div class="fila' + (f.hito ? ' fila--hito' : '') + '">' +
+             '<div class="fila__nodo"></div><div class="fila__txt">' + f.txt + '</div></div>';
+    }).join('');
+  } else {
+    el.className = 'paso' + (p.hito ? ' paso--hito' : '') + (p.hook ? ' paso--hook' : '');
+    if (!p.hook) h += '<div class="nodo"></div>';
+    if (p.rotulo) h += '<div class="rotulo">' + p.rotulo + '</div>';
+
+    const burbuja = p.burbuja
+      ? '<div class="burbuja' + (p.mudo ? ' burbuja--muda' : '') + '">' + p.burbuja +
+        (p.sello ? '<span class="sello">' + p.sello + '</span>' : '') + '</div>'
+      : '';
+
+    /* En la apertura la burbuja va primero: el mensaje del cliente es lo que
+       plantea la pregunta, y el titular es la respuesta incomoda. Al reves se
+       lee al reves. En el resto de los pasos el titular manda. */
+    if (p.hook) h += burbuja;
+    if (p.titulo) h += '<div class="titulo">' + p.titulo.replace(/\n/g, '<br>') + '</div>';
+    if (!p.hook) h += burbuja;
+    if (p.tarjeta) {
+      h += '<div class="tarjeta" style="margin-left:' + (116 + (p.tarjeta.desvio || 0)) + 'px">' +
+           '<div class="tarjeta__etq">' + p.tarjeta.etiqueta + '</div>' +
+           '<div class="tarjeta__txt">' + p.tarjeta.texto + '</div></div>';
+    }
+    if (p.nota) h += '<div class="nota">' + p.nota.replace(/\n/g, '<br>') + '</div>';
+    if (p.fichas) {
+      h += '<div class="fichas">' + p.fichas.map(function (f) {
+        return '<div class="ficha">' + f + '</div>';
+      }).join('') + '</div>';
+    }
+    if (p.remate) {
+      h += '<div class="remate"><div class="remate__txt">' + p.remate + '</div>' +
+           (p.pie ? '<div class="remate__pie">' + p.pie + '</div>' : '') + '</div>';
+    }
+  }
+
+  el.innerHTML = h;
+  lienzo.appendChild(el);
+  CAJAS.push(el);
+});
+
+/* La altura de cada caja no se puede fijar a mano: depende del texto y de la
+   tipografia. Se mide, pero las tipografias de marca cargan despues de que
+   corre este script, y con la tipografia de reserva las medidas salen mal. Por
+   eso se vuelve a medir en cada cuadro hasta que las fuentes esten listas. */
+let acomodado = false;
+
+function acomodar() {
+  if (acomodado) return;
+  PASOS.forEach(function (p, j) {
+    const el = CAJAS[j];
+    const alto = el.offsetHeight;
+    const arriba = Math.round(p.camara.y - alto / 2 - SUBIDA);
+    el.style.top = arriba + 'px';
+    /* donde cae el nodo de este paso, para saber hasta donde llenar el riel */
+    p.nodoY = arriba + 25;
+  });
+  if (typeof document.fonts === 'undefined' || document.fonts.status === 'loaded') {
+    acomodado = true;
+  }
+}
+
+/* El riel se parte donde la informacion esta partida, y se cierra cuando
+   aparece lo que la junta. Es el mismo dispositivo de marca usado como
+   argumento en vez de como adorno: lo que conecta todo se ve roto.
+
+   Tambien resuelve un problema de ritmo. Sin esto, los pasos que describen
+   sintomas son planos sueltos con la camara bajando entre ellos: cada uno se
+   entiende y juntos no dicen nada. El corte es lo que los vuelve una sola
+   idea, porque todos son pedazos de la misma linea rota.
+
+   Un paso con `corte` dice que la linea que llega a su nodo viene partida.
+   El paso con `sana` es donde los cortes se cierran. */
+const HUECO = 180;
+const RIEL_FADE_ARRIBA = 110, RIEL_FADE_ABAJO = 130;
+let mascaraPuesta = '';
+
+function tramosRotos(t) {
+  let cerrado = 0;
+  for (let i = 0; i < PASOS.length; i++) {
+    if (PASOS[i].sana) { cerrado = salida((t - PASOS[i].t0) / 0.9); break; }
+  }
+  const medio = (HUECO / 2) * (1 - cerrado);
+  if (medio < 1.5) return [];
+
+  const tramos = [];
+  for (let i = 1; i < PASOS.length; i++) {
+    if (!PASOS[i].corte || !PASOS[i].nodoY) continue;
+    const previo = PASOS[i - 1].nodoY || RIEL_Y;
+    const centro = (previo + PASOS[i].nodoY) / 2 - RIEL_Y;
+    tramos.push([Math.round(centro - medio), Math.round(centro + medio)]);
+  }
+  return tramos;
+}
+
+function pintarRiel(t) {
+  const tramos = tramosRotos(t);
+  let huecos = '';
+  for (const [a, b] of tramos) {
+    huecos += ',#000 ' + a + 'px,transparent ' + a + 'px' +
+              ',transparent ' + b + 'px,#000 ' + b + 'px';
+  }
+  /* se vuelve a escribir solo cuando cambia: es una mascara, y repintarla en
+     cada cuadro sin necesidad cuesta */
+  if (huecos === mascaraPuesta) return;
+  mascaraPuesta = huecos;
+
+  const cabeza = 'linear-gradient(180deg,transparent 0,#000 ' + RIEL_FADE_ARRIBA + 'px';
+  riel.style.webkitMaskImage =
+    cabeza + huecos + ',#000 calc(100% - ' + RIEL_FADE_ABAJO + 'px),transparent 100%)';
+  /* el tramo encendido crece, asi que su mascara no puede medirse desde abajo */
+  rielOn.style.webkitMaskImage = cabeza + huecos + ',#000 100%)';
+}
+
+/* --- dibujo --------------------------------------------------------------- */
+const CUADRO_W = 1080, CUADRO_H = 1920;
+
+function camaraEn(t) {
+  /* la camara se mueve en el primer 42% del paso y despues sostiene: moverse
+     mientras se habla distrae, y el sostenido es lo que deja que el punto cale */
+  let i = PASOS.findIndex(function (p) { return t >= p.t0 && t < p.t1; });
+  if (i === -1) i = PASOS.length - 1;
+  const p = PASOS[i], previo = PASOS[Math.max(0, i - 1)];
+  const k = suave((t - p.t0) / Math.max(0.5, (p.t1 - p.t0) * 0.42));
+  return {
+    y: previo.camara.y + (p.camara.y - previo.camara.y) * k,
+    z: previo.camara.z + (p.camara.z - previo.camara.z) * k,
+    i: i,
+  };
+}
+
+function dibujar(t) {
+  t = Math.max(0, Math.min(DUR, t));
+  acomodar();
+  const c = camaraEn(t);
+
+  /* deriva continua: la escena nunca queda del todo quieta */
+  const deriva = Math.sin(t * 0.21) * 7;
+
+  const x = (CUADRO_W - CUADRO_W * c.z) / 2;
+  const y = CUADRO_H / 2 - c.y * c.z + deriva;
+  lienzo.style.transform =
+    'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) scale(' + c.z.toFixed(4) + ')';
+
+  /* el riel se llena hasta el nodo del paso en curso, y se parte donde toca */
+  const p = PASOS[c.i];
+  const tope = p.cierre ? RIEL_ALTO : ((p.nodoY || p.camara.y) - RIEL_Y);
+  rielOn.style.height = Math.max(0, tope) + 'px';
+  pintarRiel(t);
+
+  /* Profundidad de campo. Un paso aparece cuando le toca, pero lo que la camara
+     ya dejo atras no se queda nitido colgando del borde: se apaga y se
+     desenfoca. Es lo que separa una camara que viaja por un espacio de una
+     lista que se desplaza. */
+  PASOS.forEach(function (pp, j) {
+    const el = CAJAS[j];
+    const entra = salida((t - pp.t0 + 0.05) / 0.62);
+    const lejos = sat((Math.abs(pp.camara.y - c.y) - 300) / 760);
+    const op = entra * (0.04 + 0.96 * Math.pow(1 - lejos, 1.7));
+    el.style.opacity = op.toFixed(3);
+    /* el desenfoque cuesta en el render: solo donde todavia se ve algo */
+    el.style.filter = (lejos > 0.02 && op > 0.07) ? 'blur(' + (lejos * 4.5).toFixed(2) + 'px)' : 'none';
+    el.style.transform =
+      'translateY(' + ((1 - rebote(sat((t - pp.t0) / 0.72))) * 46).toFixed(2) + 'px)';
+
+    /* las fichas se encienden escalonadas, 90 ms una de otra */
+    el.querySelectorAll('.ficha').forEach(function (f, k) {
+      if (salida((t - pp.t0 - 0.5 - k * 0.09) / 0.4) > 0.55) f.classList.add('ficha--viva');
+      else f.classList.remove('ficha--viva');
+    });
+  });
+
+  /* la sigla abre, la firma cierra */
+  $('sigla').style.opacity = (1 - salida((t - 2.6) / 0.9)) * salida(t / 0.8);
+  const ult = PASOS[PASOS.length - 1];
+  $('firma').style.opacity = salida((t - (ult.t0 + 1.1)) / 0.8);
+
+}
+
+window.cuadro = function (t) { dibujar(t); return true; };
+window.plan = function () {
+  return {
+    dur: DUR,
+    beats: PASOS.map(function (p) {
+      return {
+        t0: p.t0, t1: p.t1,
+        texto: (p.titulo || p.remate || (p.cierre ? '(plano final)' : '')).replace(/\n/g, ' '),
+      };
+    }),
+  };
+};
+
+/* --- vista en el navegador ------------------------------------------------- */
+if (!new URLSearchParams(location.search).has('render')) {
+  let base = performance.now();
+  (function loop(now) {
+    let t = (now - base) / 1000;
+    if (t >= DUR) { base = now; t = 0; }
+    dibujar(t);
+    requestAnimationFrame(loop);
+  })(performance.now());
+  const ajustar = function () {
+    const s = Math.min(window.innerHeight / 1920, window.innerWidth / 1080);
+    $('stage').style.transform = 'scale(' + s + ')';
+    document.body.style.width = (1080 * s) + 'px';
+  };
+  window.addEventListener('resize', ajustar);
+  ajustar();
+} else {
+  dibujar(0);
+}
+</script>
